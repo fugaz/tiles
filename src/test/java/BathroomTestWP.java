@@ -12,55 +12,77 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class BathroomTest {
+public class BathroomTestWP {
 
-    static int NUM_TILES = 6;
+    static int HEIGHT = 9;
+    static int WIDTH = 14;
+    static int NUM_COLORS = 4;
 
     public static void main(String[] args) throws IOException, ElementNotFoundException, GraphParseException {
-        Graph graph = new SingleGraph("My bathroom");
+        Graph wall = new SingleGraph("My wall");
 
-        Generator gen = new GridGenerator(false, false);
-        gen.addSink(graph);
-        gen.begin();
-        for (int i = 0; i < NUM_TILES; i++) {
-            gen.nextEvents();
+        // number of tiles
+        int numTiles = HEIGHT * WIDTH;
+
+        // add tiles
+        for (int i = 0; i < numTiles; i++) {
+            String nodeName = String.valueOf(i);
+            wall.addNode(nodeName);
         }
-        gen.end();
 
+        // add edges
+        for (int i = 0; i < numTiles - 1; i++) {
+            String node0Name = String.valueOf(i);
+            // horizontal edges
+            String node1Name = String.valueOf(i + 1);
+            if (((i + 1) % WIDTH) != 0) {
+                String edgeName = node0Name + "_" + node1Name;
+                wall.addEdge(edgeName, node0Name, node1Name);
+            }
+            // vertical edges
+            String node2Name = String.valueOf(i + WIDTH);
+            if (i + WIDTH < numTiles) {
+                String edgeName = node0Name + "_" + node2Name;
+                wall.addEdge(edgeName, node0Name, node2Name);
+            }
+        }
+
+        // Welsh Powell coloring
         WelshPowell wp = new WelshPowell("color");
-        wp.init(graph);
+        wp.init(wall);
         wp.compute();
 
         // debug
         System.out.println("The chromatic number of this graph is : " + wp.getChromaticNumber());
 
         HashMap<Integer, Integer> tiles = new HashMap<Integer, Integer>();
-        for (Node n : graph) {
+        // print the color of each node
+        for (Node n : wall) {
             Integer myColor = n.getAttribute("color");
             System.out.println("Node " + n.getId() + " : color " + myColor);
             int count = tiles.containsKey(myColor) ? tiles.get(myColor) : 0;
             tiles.put(myColor, count + 1);
         }
 
+        // How many tiles for each color
         Iterator<Integer> keySetIterator = tiles.keySet().iterator();
         while (keySetIterator.hasNext()) {
             Integer key = keySetIterator.next();
             System.out.println("Tiles: " + key + " count: " + tiles.get(key));
         }
 
-        Color[] cols = new Color[wp.getChromaticNumber()];
+        Color[] cols = new Color[NUM_COLORS];
         cols[0] = Color.MAGENTA;
         cols[1] = Color.LIGHT_GRAY;
         cols[2] = Color.PINK;
-        cols[3] = Color.blue;
-        // extra colors
-//        cols[4] = Color.YELLOW;
+        cols[3] = Color.BLUE;
 
-        for (Node n : graph) {
+        for (Node n : wall) {
             int col = (int) n.getNumber("color");
             n.addAttribute("ui.style", "fill-color:rgba(" + cols[col].getRed() + "," + cols[col].getGreen() + "," + cols[col].getBlue() + ",200);");
         }
 
-        graph.display();
+        wall.addAttribute("ui.stylesheet", "node {shape:box;  size: 50px;}");
+        wall.display();
     }
 }
